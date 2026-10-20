@@ -1,0 +1,31 @@
+services:
+  backend:
+    build: ./backend
+    env_file:
+      - path: ./backend/.env
+        required: false
+    environment:
+      DATABASE_PATH: /app/storage/smart_irrigation.db
+      PHOTO_DIR: /app/storage/photos
+    ports:
+      - "5000:5000"
+    volumes:
+      - ./backend/storage:/app/storage
+    restart: unless-stopped
+  frontend:                 # production build served by nginx; /api is proxied to the backend
+    build: ./frontend
+    ports:
+      - "8080:80"
+    depends_on:
+      - backend
+    restart: unless-stopped
+  mosquitto:                # PRIVATE MQTT broker (no anonymous access). See deploy/mosquitto/README.md
+    image: eclipse-mosquitto:2
+    profiles: ["mqtt"]
+    ports:
+      - "1883:1883"
+    volumes:
+      - ./deploy/mosquitto/mosquitto.conf:/mosquitto/config/mosquitto.conf:ro
+      - ./deploy/mosquitto/acl:/mosquitto/config/acl:ro
+      - ./deploy/mosquitto/passwd:/mosquitto/config/passwd:ro
+    restart: unless-stopped
